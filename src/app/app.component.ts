@@ -1,4 +1,8 @@
 import { Component } from '@angular/core';
+import { AngularFirestore } from '@angular/fire/firestore'
+
+import { Subject, combineLatest } from 'rxjs'
+import { Observable, Subscription } from 'rxjs'
 
 @Component({
   selector: 'app-root',
@@ -7,4 +11,42 @@ import { Component } from '@angular/core';
 })
 export class AppComponent {
   title = 'ac';
+  searchterm: string;
+
+  startAt = new Subject();
+  endAt = new Subject();
+
+  clubs;
+  sub : Subscription;
+
+  startobs = this.startAt.asObservable();
+  endobs = this.endAt.asObservable();
+
+
+  constructor(private afs: AngularFirestore){}
+
+  ngOnInit(){
+     combineLatest(this.startobs, this.endobs).subscribe((value)=>{
+      this.firequery(value[0], value[1]).subscribe((clubs)=>{
+        this.clubs = clubs;
+      })
+    })
+  }
+
+  reflect(data)
+  {
+    this.searchterm = data
+  }
+
+  search($event)
+  {
+    let q = $event.target.value;
+    this.startAt.next(q);
+    this.endAt.next(q + "\uf8ff");
+  }
+
+
+  firequery(start, end) {
+    return  this.afs.collection('clubs', ref => ref.limit(4).orderBy('club').startAt(start).endAt(end)).valueChanges();
+  }
 }
